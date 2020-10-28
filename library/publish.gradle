@@ -1,0 +1,169 @@
+/** Maven Publish Helper */
+
+apply plugin: 'maven-publish'
+
+task androidSourcesJar(type: Jar) {
+	archiveClassifier.set("sources")
+	from android.sourceSets.main.java.srcDirs
+}
+
+task androidJavadocs(type: Javadoc) {
+	source = android.sourceSets.main.java.srcDirs
+	classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+	android.libraryVariants.all { variant ->
+		if (variant.name == 'release') {
+			if (variant.hasProperty('javaCompileProvider')) {
+				// Android 3.3.0+
+				owner.classpath += variant.javaCompileProvider.get().classpath
+			} else {
+				owner.classpath += variant.javaCompile.classpath
+			}
+		}
+	}
+	exclude '**/R.html', '**/R.*.html', '**/index.html'
+}
+
+task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+	archiveClassifier.set("javadoc")
+	from androidJavadocs.destinationDir
+}
+
+project.artifacts {
+	archives androidJavadocsJar, androidSourcesJar
+}
+
+project.afterEvaluate {
+	publishing {
+		publications {
+			maven(MavenPublication) {
+				//groupId 'cz.adaptech.android'
+				groupId 'what.is.groupId'
+				//artifactId 'tesseract4android'
+				artifactId 'artifactId4android'
+				// Derive version from ?????
+				version = android.defaultConfig.versionName
+
+				artifact bundleReleaseAar
+				artifact androidJavadocsJar
+				artifact androidSourcesJar
+
+				pom.withXml {
+					final root = asNode()
+					// Attribute "scm" (and probably also "name") is required in order to be valid pom for publishing on JCenter.
+					// Bintray works without them. Maven Central requires in addition few more attributes.
+					//root.appendNode('name', 'tesseract4android')
+					root.appendNode('name', 'MPAtesting')
+					//root.appendNode('scm').appendNode('url', 'https://github.com/adaptech-cz/Tesseract4Android')
+					root.appendNode('scm').appendNode('url', 'https://github.com/MPArnold/jitpublAS')
+
+					final dependenciesNode = root.appendNode('dependencies')
+					ext.addDependency = { dep, String scope ->
+						if (dep.group == null || dep.version == null || dep.name == null || dep.name == "unspecified")
+							return // ignore invalid dependencies
+
+						final dependencyNode = dependenciesNode.appendNode('dependency')
+						dependencyNode.appendNode('groupId', dep.group)
+						dependencyNode.appendNode('artifactId', dep.name)
+						dependencyNode.appendNode('version', dep.version)
+						dependencyNode.appendNode('scope', scope)
+
+						if (!dep.transitive) {
+							// If this dependency is not transitive, we should force exclude all its dependencies from the POM
+							final exclusionNode = dependencyNode.appendNode('exclusions').appendNode('exclusion')
+							exclusionNode.appendNode('groupId', '*')
+							exclusionNode.appendNode('artifactId', '*')
+						} else if (!dep.properties.excludeRules.empty) {
+							// Otherwise add specified exclude rules
+							final exclusionsNode = dependencyNode.appendNode('exclusions')
+							dep.properties.excludeRules.each { rule ->
+								final exclusionNode = exclusionsNode.appendNode('exclusion')
+								exclusionNode.appendNode('groupId', rule.group ?: '*')
+								exclusionNode.appendNode('artifactId', rule.module ?: '*')
+							}
+						}
+					}
+
+					// List all "compile" dependencies (for old Gradle)
+					configurations.compile.getDependencies().each { dep -> addDependency(dep, "compile") }
+					// List all "api" dependencies (for new Gradle) as "compile" dependencies
+					configurations.api.getDependencies().each { dep -> addDependency(dep, "compile") }
+					// List all "implementation" dependencies (for new Gradle) as "runtime" dependencies
+					configurations.implementation.getDependencies().each { dep -> addDependency(dep, "runtime") }
+				}
+			}
+		}
+	}
+}
+
+/** MPA: ... publish configuration
+//apply plugin: 'com.github.dcendents.android-maven'
+group = 'com.github.MPArnold'
+version = '3.11'
+
+// See: https://developer.android.com/studio/build/maven-publish-plugin
+// This is the example given for producing a library .aar
+afterEvaluate {
+	publishing {
+		publications {
+			// Creates a Maven publication called "release".
+			release(MavenPublication) {
+				// Applies the component for the release build variant.
+				from components.release
+
+				// You can then customize attributes of the publication as shown below.
+				groupId = 'com.example.MyLibrary'
+				artifactId = 'final'
+				version = '1.0'
+			}
+			// Creates a Maven publication called “debug”.
+			debug(MavenPublication) {
+				// Applies the component for the debug build variant.
+				from components.debug
+
+				groupId = 'com.example.MyLibrary'
+				artifactId = 'final-debug'
+				version = '1.0'
+			}
+		}
+	}
+}*/
+
+
+
+
+
+/** Bintray publish configuration
+apply plugin: 'com.jfrog.bintray'
+
+group "cz.adaptech.android"
+version android.defaultConfig.versionName
+
+Properties properties = new Properties()
+properties.load(new FileInputStream(project.rootProject.file('local.properties')))
+
+bintray {
+	user = properties.getProperty("bintray.user")
+	key = properties.getProperty("bintray.apikey")
+
+	publications = ['maven']
+	publish = true
+	override = true
+	pkg {
+		repo = 'maven'
+		name = "tesseract4android"
+		userOrg = 'adaptech'
+		desc = 'Android library for OCR based on Tesseract.'
+		websiteUrl = 'https://github.com/adaptech-cz/Tesseract4Android'
+		issueTrackerUrl = 'https://github.com/adaptech-cz/Tesseract4Android/issues'
+		vcsUrl = 'https://github.com/adaptech-cz/Tesseract4Android'
+		githubRepo = 'adaptech-cz/Tesseract4Android'
+		licenses = ['Apache-2.0']
+		labels = ['android', 'ocr', 'tesseract']
+		publicDownloadNumbers = true
+		version {
+			name = this.version
+			released = new Date()
+			vcsTag = 'v' + this.version
+		}
+	}
+}*/
