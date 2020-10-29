@@ -37,9 +37,9 @@ project.afterEvaluate {
 		publications {
 			maven(MavenPublication) {
 				//groupId 'cz.adaptech.android'
-				groupId 'what.is.groupId'
 				//artifactId 'tesseract4android'
-				artifactId 'artifactId4android'
+				groupId 'my.groupId'				// eg pkgName
+				artifactId 'myArtifactId'			// Description
 				// Derive version from ?????
 				version = android.defaultConfig.versionName
 
@@ -53,7 +53,6 @@ project.afterEvaluate {
 					// Bintray works without them. Maven Central requires in addition few more attributes.
 					//root.appendNode('name', 'tesseract4android')
 					root.appendNode('name', 'MPAtesting')
-					//root.appendNode('scm').appendNode('url', 'https://github.com/adaptech-cz/Tesseract4Android')
 					root.appendNode('scm').appendNode('url', 'https://github.com/MPArnold/jitpublAS')
 
 					final dependenciesNode = root.appendNode('dependencies')
@@ -93,6 +92,8 @@ project.afterEvaluate {
 			}
 		}
 	}
+	// https://stackoverflow.com/questions/28805607
+	generateReleaseBuildConfig.enabled = false
 }
 
 /** MPA: ... publish configuration
