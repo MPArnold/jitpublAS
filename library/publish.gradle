@@ -97,7 +97,6 @@ project.afterEvaluate {
 }
 
 /** MPA: ... publish configuration
-//apply plugin: 'com.github.dcendents.android-maven'
 group = 'com.github.MPArnold'
 version = '3.11'
 
